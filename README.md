@@ -1,4 +1,4 @@
-# RAG-Based Image Retrieval & Querying
+# RAG-Based Image Retrieval & Querying(Ongoing)
 
 ## Problem Statement
 
