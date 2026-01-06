@@ -1,48 +1,130 @@
+Problem Statement
 
-# Editing this README
+The goal of this project is to:
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Retrieve images from storage using natural language text queries
 
-## Suggestions for a good README
+Generate captions for images to enrich semantic understanding
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Enable querying and inference over image data rather than simple retrieval
 
-## RAG_Image_Retrieval&Querying
-Choose a self-explaining name for your project.
+Challenges
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Simple images do not contain any implicit structure that can be directly used for mathematical or statistical reasoning.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Images lack explicit semantic meaning, and visual similarity cannot be directly equated to semantic similarity.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Abstract user queries (e.g., How much?, Which?, What entity?) cannot be answered using basic image retrieval.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Images containing data such as charts, plots, and documents encode information visually, making them difficult to ingest or query directly.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+Limitations of Current Systems
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+They can generate embeddings but cannot provide explanations.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+They lack the ability to understand the structured meaning of visual data.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+There is no grounding or justification for why a particular image was retrieved.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Goal
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+To build a RAG-based system that:
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+Focuses on retrieval using embeddings, combined with reasoning over retrieved evidence
 
-## License
-For open source projects, say how it is licensed.
+Enables grounded and explainable responses
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Supports multimodal reasoning using:
+
+Visual embeddings
+
+Textual evidence
+
+Structured metadata
+
+Adapts to user intent over time through continuous learning
+
+End-to-End Pipeline
+
+User Input
+Users submit queries as natural language text.
+
+Embedding-Based Retrieval
+The query is converted into a vector embedding and used to retrieve the most visually and semantically similar images from a vector database.
+
+Metadata-Based Filtering
+Tags and captions are used to pre-filter and refine the candidate image set, improving speed and relevance.
+
+Image Routing
+Each retrieved image is passed through a routing layer to determine whether it is:
+
+A natural image, or
+
+A structured visual such as a chart or graph
+
+Conditional Processing
+
+Natural images are processed using visual similarity and caption-based reasoning.
+
+Charts and graphs are processed using OCR and structured interpretation to extract meaningful evidence.
+
+Structured Representation
+Extracted evidence is converted into structured intermediate representations that capture only observable and reliable information.
+
+Grounded Generation
+These representations are passed to a language model that generates a final response strictly grounded in retrieved evidence.
+
+Major Components
+
+Image Encoder
+Converts images into semantic embeddings for similarity-based retrieval.
+
+Text Encoder
+Transforms text queries into embeddings compatible with image embeddings.
+
+Vector Database (FAISS)
+Stores image embeddings and enables fast similarity search at query time.
+
+Metadata Store
+Maintains captions, tags, and image paths to support filtering, ranking, and explainability.
+
+Captioning Module
+Generates descriptive captions offline to add semantic context for retrieval and reasoning.
+
+Routing & Image Classifier
+Identifies whether an image is a natural photo or a structured visual and routes it to the correct pipeline.
+
+Chart Understanding Pipeline
+Interprets statistical charts using OCR and structural analysis to generate safe, high-level insights.
+
+Retrieval-Augmented Generation (RAG)
+Combines retrieved images, metadata, and structured evidence to produce grounded responses.
+
+Learning & Tag Update Mechanism
+Continuously enriches metadata by learning from user queries, improving retrieval relevance over time without retraining models.
+
+Limitations
+
+Chart interpretation is approximate rather than exact.
+
+OCR inaccuracies may affect text extraction quality.
+
+Not all chart types, particularly line graphs, are currently handled.
+
+No domain-specific validation of extracted data.
+
+Charts with heavy graphics or illustrative formatting may not be processed correctly.
+
+Future Work
+
+Support for line and pie charts
+
+Table extraction from images
+
+Enhanced document understanding
+
+Dashboard and multi-chart handling
+
+Confidence scoring for extracted insights
+
+Incremental indexing for scalable updates
