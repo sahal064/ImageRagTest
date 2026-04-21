@@ -10,7 +10,7 @@ from PIL import Image
 from agent.runner import run_agent
 from retrieval.search import search_images
 
-IMAGES_DIR = "images"
+IMAGES_DIR = os.getenv("IMAGES_DIR", "images")
 
 st.set_page_config(layout="wide")
 st.title(" Image Search + Reasoing")

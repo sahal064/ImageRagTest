@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Search + Reasoning</title>
+  <style>
+    :root {
+      --surface-base:   #000000;
+      --surface-raised: #141414;
+      --surface-muted:  #4d4d4d;
+      --surface-strong: #aaaaaa;
+      --text-primary:   #ffffff;
+      --text-secondary: #808080;
+      --text-tertiary:  #e5e5e5;
+      --accent:         #e50914;
+      --font: 'Netflix Sans', 'Helvetica Neue', 'Segoe UI', Roboto, Ubuntu, sans-serif;
+      --r-xs: 4px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #0a0a0a;
+      border-bottom: 1px solid #1a1a1a;
+      padding: 18px 40px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header h1 {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+
+    header h1 em {
+      color: var(--accent);
+      font-style: normal;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 40px 80px;
+    }
+
+    /* ── Search bar ── */
+    .search-wrap {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+
+    .search-input {
+      flex: 1;
+      background: var(--surface-raised);
+      border: 1px solid var(--surface-muted);
+      border-radius: var(--r-xs);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 15px;
+      padding: 14px 18px;
+      outline: none;
+      transition: border-color 0.18s;
+    }
+
+    .search-input:focus { border-color: var(--text-secondary); }
+    .search-input::placeholder { color: var(--text-secondary); }
+
+    .search-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--r-xs);
+      color: #fff;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 32px;
+      transition: opacity 0.18s;
+      white-space: nowrap;
+    }
+
+    .search-btn:hover:not(:disabled) { opacity: 0.85; }
+    .search-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 36px;
+    }
+
+    .ring {
+      width: 20px; height: 20px;
+      border: 2px solid var(--surface-muted);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Section headers ── */
+    .section-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 18px;
+    }
+
+    /* ── Answer card ── */
+    .answer-card {
+      background: var(--surface-raised);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--r-xs);
+      padding: 20px 24px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-tertiary);
+      white-space: pre-wrap;
+    }
+
+    /* ── Image grids ── */
+    .img-section { margin-bottom: 48px; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+    .img-card {
+      background: var(--surface-raised);
+      border-radius: var(--r-xs);
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+      cursor: default;
+    }
+
+    .img-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.7);
+    }
+
+    .img-card img {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      display: block;
+      background: #1a1a1a;
+    }
+
+    .img-caption {
+      padding: 10px 12px 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .img-score {
+      padding: 2px 12px 10px;
+      font-size: 11px;
+      color: var(--surface-muted);
+    }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid #1e1e1e; margin: 8px 0 48px; }
+
+    /* ── Utilities ── */
+    .hidden { display: none !important; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      main { padding: 32px 20px 60px; }
+      .grid-4 { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 640px) {
+      header { padding: 16px 20px; }
+      .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 400px) {
+      .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .search-wrap { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Image <em>Search</em> + Reasoning</h1>
+</header>
+
+<main>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <input
+      id="queryInput"
+      class="search-input"
+      type="text"
+      placeholder="e.g. What was the increase in the population of India?"
+      autofocus
+    />
+    <button id="searchBtn" class="search-btn" onclick="doSearch()">Search</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingEl" class="spinner hidden">
+    <div class="ring"></div>
+    <span>Thinking…</span>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsSection" class="hidden">
+    <div class="img-section">
+      <h2 class="section-title">Agent Answer</h2>
+      <div id="answerCard" class="answer-card"></div>
+    </div>
+
+    <div id="imagesUsedSection" class="img-section hidden">
+      <h2 class="section-title">Images Used</h2>
+      <div id="imagesUsedGrid" class="grid-3"></div>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- Browse all -->
+  <div class="img-section">
+    <h2 class="section-title">Browse All Images</h2>
+    <div id="allImagesGrid" class="grid-4"></div>
+  </div>
+
+</main>
+
+<script>
+  function imgCard(url, caption, score) {
+    return `
+      <div class="img-card">
+        <img src="${url}" alt="${escHtml(caption)}" loading="lazy" />
+        <div class="img-caption">${escHtml(caption)}</div>
+        ${score != null ? `<div class="img-score">Score: ${Number(score).toFixed(3)}</div>` : ''}
+      </div>`;
+  }
+
+  function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function loadAllImages() {
+    try {
+      const res  = await fetch('/api/images');
+      const data = await res.json();
+      document.getElementById('allImagesGrid').innerHTML =
+        data.images.map(i => imgCard(i.url, i.name, null)).join('');
+    } catch (e) {
+      document.getElementById('allImagesGrid').innerHTML =
+        `<p style="color:var(--text-secondary)">Could not load images.</p>`;
+    }
+  }
+
+  async function doSearch() {
+    const input = document.getElementById('queryInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    const btn      = document.getElementById('searchBtn');
+    const loading  = document.getElementById('loadingEl');
+    const results  = document.getElementById('resultsSection');
+
+    btn.disabled = true;
+    loading.classList.remove('hidden');
+    results.classList.add('hidden');
+
+    try {
+      const res  = await fetch('/api/search', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ query }),
+      });
+
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+
+      document.getElementById('answerCard').textContent = data.answer ?? '';
+
+      const usedSection = document.getElementById('imagesUsedSection');
+      const usedGrid    = document.getElementById('imagesUsedGrid');
+
+      if (data.images?.length) {
+        usedGrid.innerHTML = data.images
+          .map(i => imgCard(i.url, i.caption ?? '', i.score))
+          .join('');
+        usedSection.classList.remove('hidden');
+      } else {
+        usedSection.classList.add('hidden');
+      }
+
+      results.classList.remove('hidden');
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      document.getElementById('answerCard').textContent = 'Error: ' + err.message;
+      document.getElementById('imagesUsedSection').classList.add('hidden');
+      results.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      loading.classList.add('hidden');
+    }
+  }
+
+  document.getElementById('queryInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  loadAllImages();
+</script>
+
+</body>
+</html>

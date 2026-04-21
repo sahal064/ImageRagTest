@@ -27,18 +27,25 @@
 #     return [metadata[i] for i in I[0]]
 # search.py
 
+import os
 import faiss
 import pickle
 import torch
 import open_clip
 import numpy as np
 from typing import List, Dict, Set
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # -------------------- Load DBs --------------------
 
-index = faiss.read_index("db/db_index.faiss")
+DB_INDEX_PATH = os.getenv("DB_INDEX_PATH", "db/db_index.faiss")
+DB_METADATA_PATH = os.getenv("DB_METADATA_PATH", "db/db_metadata.pkl")
 
-with open("db/db_metadata.pkl", "rb") as f:
+index = faiss.read_index(DB_INDEX_PATH)
+
+with open(DB_METADATA_PATH, "rb") as f:
     metadata = pickle.load(f)
 
 # -------------------- Load CLIP --------------------
@@ -136,7 +143,7 @@ def search_images(
                 meta_record["tags"].append(query)
 
         # persist updates
-        with open("db/db_metadata.pkl", "wb") as f:
+        with open(DB_METADATA_PATH, "wb") as f:
             pickle.dump(metadata, f)
 
     return results
