@@ -3,289 +3,1177 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image Search + Reasoning</title>
+  <title>PinSearch — Image Search + Reasoning</title>
   <style>
+    /* ── Design tokens ── */
     :root {
-      --surface-base:   #000000;
-      --surface-raised: #141414;
-      --surface-muted:  #4d4d4d;
-      --surface-strong: #aaaaaa;
-      --text-primary:   #ffffff;
-      --text-secondary: #808080;
-      --text-tertiary:  #e5e5e5;
-      --accent:         #e50914;
-      --font: 'Netflix Sans', 'Helvetica Neue', 'Segoe UI', Roboto, Ubuntu, sans-serif;
-      --r-xs: 4px;
+      --red:        #e60023;
+      --red-hover:  #c0001e;
+      --plum:       #211922;
+      --olive:      #62625b;
+      --silver:     #91918c;
+      --sand:       #e5e5e0;
+      --warm-light: #e0e0d9;
+      --fog:        #f6f6f3;
+      --border-dis: #c8c8c1;
+      --dark-surf:  #33332e;
+      --focus:      #435ee5;
+      --white:      #ffffff;
+      --badge-bg:   hsla(60, 20%, 98%, 0.9);
+
+      --grad-a: #e60023;
+      --grad-b: #cf30aa;
+      --grad-c: #402fb5;
+
+      --font: 'Pin Sans', -apple-system, system-ui, 'Segoe UI', Roboto,
+              'Oxygen-Sans', 'Apple Color Emoji', 'Segoe UI Emoji',
+              'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+      --r-btn:  16px;
+      --r-card: 20px;
+      --r-xl:   40px;
+
+      --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html { scroll-behavior: smooth; }
+
     body {
-      background: var(--surface-base);
-      color: var(--text-primary);
+      background: var(--white);
+      color: var(--plum);
       font-family: var(--font);
-      font-size: 14px;
+      font-size: 16px;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* ── Header ── */
+    /* ─────────────────────────────────────────────
+       SPLASH LOADER (initial page load)
+       ───────────────────────────────────────────── */
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      background: radial-gradient(circle at 50% 40%, #1a0a1a 0%, #0a0508 70%, #000 100%);
+      transition: opacity 0.6s var(--ease-out-expo), visibility 0.6s var(--ease-out-expo);
+    }
+
+    #splash.hide {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .splash-ring {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .splash-ring::before,
+    .splash-ring::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg,
+        transparent 0%,
+        var(--grad-a) 25%,
+        var(--grad-b) 50%,
+        var(--grad-c) 75%,
+        transparent 100%);
+      filter: blur(2px);
+      animation: splash-spin 2.4s linear infinite;
+    }
+
+    .splash-ring::after {
+      inset: 6px;
+      background: radial-gradient(circle, #1a0a1a 60%, transparent 62%);
+      filter: none;
+      animation: none;
+    }
+
+    .splash-mark {
+      position: relative;
+      z-index: 2;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--red) 0%, #ff3b6e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 34px;
+      font-weight: 800;
+      box-shadow: 0 0 40px rgba(230, 0, 35, 0.5),
+                  0 0 80px rgba(207, 48, 170, 0.3);
+      animation: splash-pulse 1.6s ease-in-out infinite;
+    }
+
+    .splash-text {
+      display: flex;
+      gap: 2px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #fff;
+    }
+
+    .splash-text span {
+      display: inline-block;
+      opacity: 0.35;
+      animation: splash-letter 1.8s ease-in-out infinite;
+    }
+
+    .splash-text span:nth-child(1) { animation-delay: 0.0s; }
+    .splash-text span:nth-child(2) { animation-delay: 0.1s; }
+    .splash-text span:nth-child(3) { animation-delay: 0.2s; }
+    .splash-text span:nth-child(4) { animation-delay: 0.3s; }
+    .splash-text span:nth-child(5) { animation-delay: 0.4s; }
+    .splash-text span:nth-child(6) { animation-delay: 0.5s; }
+    .splash-text span:nth-child(7) { animation-delay: 0.6s; }
+    .splash-text span:nth-child(8) { animation-delay: 0.7s; }
+    .splash-text span:nth-child(9) { animation-delay: 0.8s; }
+
+    .splash-sub {
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    @keyframes splash-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes splash-pulse {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.07); }
+    }
+
+    @keyframes splash-letter {
+      0%, 100% { opacity: 0.35; transform: translateY(0); }
+      40%      { opacity: 1; transform: translateY(-4px) scale(1.1); }
+    }
+
+    /* ─────────────────────────────────────────────
+       PAGE INTRO (after splash)
+       ───────────────────────────────────────────── */
+    .page {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.7s var(--ease-out-expo) 0.1s,
+                  transform 0.7s var(--ease-out-expo) 0.1s;
+    }
+
+    .page.ready {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─────────────────────────────────────────────
+       HEADER
+       ───────────────────────────────────────────── */
     header {
-      background: #0a0a0a;
-      border-bottom: 1px solid #1a1a1a;
-      padding: 18px 40px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      border-bottom: 1px solid var(--sand);
+      padding: 14px 24px;
       position: sticky;
       top: 0;
       z-index: 100;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 16px;
     }
 
-    header h1 {
-      font-size: 21px;
-      font-weight: 700;
-      letter-spacing: -0.4px;
-    }
-
-    header h1 em {
-      color: var(--accent);
-      font-style: normal;
-    }
-
-    /* ── Layout ── */
-    main {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 48px 40px 80px;
-    }
-
-    /* ── Search bar ── */
-    .search-wrap {
+    .logo {
       display: flex;
-      gap: 12px;
-      margin-bottom: 48px;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0;
+      transition: transform 0.25s var(--ease-out-expo);
+    }
+    .logo:hover { transform: translateY(-1px); }
+
+    .logo-mark {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--red) 0%, #ff3b6e 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1;
+      flex-shrink: 0;
+      user-select: none;
+      box-shadow: 0 4px 14px rgba(230, 0, 35, 0.35);
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--plum);
+      letter-spacing: -0.5px;
+    }
+
+    /* ─────────────────────────────────────────────
+       GLOWING ANIMATED SEARCH BAR
+       (adapted from 21st.dev "Animated Glowing Search Bar"
+        using conic-gradient + rotation, vanilla CSS)
+       ───────────────────────────────────────────── */
+    .search-wrap {
+      flex: 1;
+      display: flex;
+      gap: 10px;
+      max-width: 720px;
+      align-items: center;
+    }
+
+    .search-shell {
+      position: relative;
+      flex: 1;
+      height: 46px;
+      border-radius: var(--r-btn);
+      isolation: isolate;
+    }
+
+    /* Outer rotating glow (visible on hover/focus) */
+    .search-shell::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: calc(var(--r-btn) + 2px);
+      background: conic-gradient(from var(--angle, 0deg),
+        transparent 0%,
+        var(--grad-c) 18%,
+        transparent 33%,
+        transparent 50%,
+        var(--grad-b) 68%,
+        transparent 83%,
+        transparent 100%);
+      filter: blur(6px);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      animation: search-rotate 6s linear infinite;
+      z-index: -2;
+    }
+
+    /* Inner sharper border ring */
+    .search-shell::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: calc(var(--r-btn) + 1px);
+      background: conic-gradient(from var(--angle, 0deg),
+        var(--silver) 0%,
+        var(--grad-a) 25%,
+        var(--silver) 50%,
+        var(--grad-c) 75%,
+        var(--silver) 100%);
+      opacity: 0.4;
+      transition: opacity 0.3s ease;
+      animation: search-rotate 8s linear infinite;
+      z-index: -1;
+    }
+
+    .search-shell:hover::before,
+    .search-shell:focus-within::before { opacity: 0.9; }
+
+    .search-shell:hover::after,
+    .search-shell:focus-within::after { opacity: 1; }
+
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    @keyframes search-rotate {
+      to { --angle: 360deg; }
     }
 
     .search-input {
-      flex: 1;
-      background: var(--surface-raised);
-      border: 1px solid var(--surface-muted);
-      border-radius: var(--r-xs);
-      color: var(--text-primary);
+      width: 100%;
+      height: 100%;
+      background: var(--white);
+      border: none;
+      border-radius: var(--r-btn);
+      color: var(--plum);
       font-family: var(--font);
-      font-size: 15px;
-      padding: 14px 18px;
+      font-size: 14px;
+      padding: 0 56px 0 46px;
       outline: none;
-      transition: border-color 0.18s;
+      transition: background 0.2s;
     }
 
-    .search-input:focus { border-color: var(--text-secondary); }
-    .search-input::placeholder { color: var(--text-secondary); }
+    .search-input::placeholder { color: var(--silver); }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--olive);
+      pointer-events: none;
+      transition: color 0.2s, transform 0.3s var(--ease-out-expo);
+    }
+
+    .search-shell:focus-within .search-icon {
+      color: var(--grad-b);
+      transform: translateY(-50%) scale(1.15);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%) scale(0.85);
+      opacity: 0;
+      pointer-events: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: var(--sand);
+      color: var(--olive);
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s, transform 0.2s var(--ease-out-expo), background 0.2s;
+    }
+
+    .search-shell.has-text .search-clear {
+      opacity: 1;
+      transform: translateY(-50%) scale(1);
+      pointer-events: auto;
+    }
+
+    .search-clear:hover { background: var(--plum); color: #fff; }
+
+    /* ── Top-K result count input ── */
+    .topk-shell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 46px;
+      padding: 0 12px;
+      background: var(--white);
+      border: 1px solid var(--sand);
+      border-radius: var(--r-btn);
+      flex-shrink: 0;
+      transition: border-color 0.2s, box-shadow 0.25s, transform 0.2s var(--ease-out-expo);
+    }
+    .topk-shell:hover,
+    .topk-shell:focus-within {
+      border-color: var(--plum);
+      box-shadow: 0 4px 14px rgba(33, 25, 34, 0.08);
+    }
+    .topk-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--olive);
+      letter-spacing: 0.3px;
+      user-select: none;
+    }
+    .topk-input {
+      width: 44px;
+      height: 30px;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--plum);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      -moz-appearance: textfield;
+    }
+    .topk-input::-webkit-outer-spin-button,
+    .topk-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
 
     .search-btn {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--red) 0%, #ff2363 100%);
       border: none;
-      border-radius: var(--r-xs);
+      border-radius: var(--r-btn);
       color: #fff;
       cursor: pointer;
       font-family: var(--font);
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 700;
-      padding: 14px 32px;
-      transition: opacity 0.18s;
+      padding: 0 22px;
+      height: 46px;
       white-space: nowrap;
+      transition: transform 0.2s var(--ease-out-expo),
+                  box-shadow 0.25s var(--ease-out-expo),
+                  filter 0.2s;
+      box-shadow: 0 4px 14px rgba(230, 0, 35, 0.32);
+      letter-spacing: 0.3px;
     }
 
-    .search-btn:hover:not(:disabled) { opacity: 0.85; }
+    .search-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(230, 0, 35, 0.4);
+      filter: brightness(1.05);
+    }
+    .search-btn:active:not(:disabled) { transform: translateY(0); }
+    .search-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .search-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    /* ── Spinner ── */
-    .spinner {
+    /* ─────────────────────────────────────────────
+       UPLOAD BUTTON (header) + DROPZONE (main)
+       ───────────────────────────────────────────── */
+    .upload-btn {
+      position: relative;
+      background: var(--white);
+      border: 1px solid var(--sand);
+      border-radius: var(--r-btn);
+      color: var(--plum);
+      cursor: pointer;
+      font-size: 18px;
+      height: 46px;
+      padding: 0 16px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin-bottom: 36px;
-    }
-
-    .ring {
-      width: 20px; height: 20px;
-      border: 2px solid var(--surface-muted);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .75s linear infinite;
+      gap: 6px;
+      transition: transform 0.2s var(--ease-out-expo),
+                  border-color 0.2s,
+                  box-shadow 0.25s,
+                  background 0.2s;
       flex-shrink: 0;
     }
+    .upload-btn:hover {
+      background: var(--fog);
+      border-color: var(--plum);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(33, 25, 34, 0.08);
+    }
+    .upload-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+    /* Drag-and-drop zone (shown when user drags onto window) */
+    .dropzone {
+      position: fixed;
+      inset: 16px;
+      z-index: 200;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.98);
+      transition: opacity 0.25s var(--ease-out-expo),
+                  transform 0.3s var(--ease-out-expo);
+      border: 3px dashed transparent;
+      border-radius: 28px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+    }
+
+    .dropzone.active {
+      opacity: 1;
+      transform: scale(1);
+      border-color: var(--grad-a);
+      pointer-events: auto;
+      box-shadow:
+        0 0 0 1px rgba(230,0,35,0.15) inset,
+        0 30px 60px rgba(33,25,34,0.18);
+    }
+
+    .dropzone-icon {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(230,0,35,0.1), rgba(207,48,170,0.1));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: dropzone-bob 1.6s ease-in-out infinite;
+    }
+    .dropzone-icon::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid var(--grad-a);
+      opacity: 0;
+      animation: dropzone-ring 1.6s ease-out infinite;
+    }
+    .dropzone-icon svg {
+      width: 44px;
+      height: 44px;
+      color: var(--grad-a);
+    }
+    .dropzone-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--plum);
+      letter-spacing: -0.5px;
+    }
+    .dropzone-sub {
+      font-size: 13px;
+      color: var(--olive);
+    }
+
+    @keyframes dropzone-bob {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    @keyframes dropzone-ring {
+      0%   { transform: scale(0.9); opacity: 0.7; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    /* ── Upload preview bar ── */
+    .upload-preview {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--fog);
+      border: 1px solid var(--sand);
+      border-radius: var(--r-card);
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      animation: slide-down 0.45s var(--ease-out-expo) both;
+    }
+    .upload-preview img {
+      width: 76px;
+      height: 76px;
+      object-fit: cover;
+      border-radius: 14px;
+      border: 1px solid var(--sand);
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(33,25,34,0.08);
+    }
+    .upload-preview-text { flex: 1; font-size: 14px; color: var(--olive); }
+    .upload-preview-text strong { color: var(--plum); display: block; margin-bottom: 4px; font-size: 15px; }
+    .upload-clear {
+      background: none;
+      border: 1px solid var(--silver);
+      border-radius: 50px;
+      color: var(--olive);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 6px 14px;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .upload-clear:hover { border-color: var(--red); color: var(--red); background: rgba(230,0,35,0.05); }
+
+    @keyframes slide-down {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Main ── */
+    main {
+      max-width: 1680px;
+      margin: 0 auto;
+      padding: 36px 24px 100px;
+    }
+
+    /* ── In-page search loader ── */
+    .spinner-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 22px;
+      padding: 80px 0;
+      color: var(--olive);
+      font-size: 14px;
+    }
+
+    .ring-glow {
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+    .ring-glow::before,
+    .ring-glow::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+    }
+    .ring-glow::before {
+      background: conic-gradient(from 0deg,
+        transparent 0%,
+        var(--grad-a) 30%,
+        var(--grad-b) 60%,
+        transparent 100%);
+      animation: spin 1s linear infinite;
+    }
+    .ring-glow::after {
+      inset: 4px;
+      background: var(--white);
+    }
+
+    .spinner-text {
+      letter-spacing: 0.5px;
+    }
+    .spinner-text .dot {
+      display: inline-block;
+      animation: spinner-dot 1.4s ease-in-out infinite;
+    }
+    .spinner-text .dot:nth-child(2) { animation-delay: 0.2s; }
+    .spinner-text .dot:nth-child(3) { animation-delay: 0.4s; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Section headers ── */
+    @keyframes spinner-dot {
+      0%, 100% { opacity: 0.2; transform: translateY(0); }
+      50%      { opacity: 1;   transform: translateY(-3px); }
+    }
+
+    /* ── Section titles ── */
     .section-title {
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 18px;
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--plum);
+      letter-spacing: -1.2px;
+      margin-bottom: 6px;
+      background: linear-gradient(120deg, var(--plum) 0%, var(--plum) 50%, var(--grad-b) 120%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section-sub {
+      font-size: 14px;
+      color: var(--olive);
+      margin-bottom: 24px;
     }
 
     /* ── Answer card ── */
+    .answer-section {
+      margin-bottom: 48px;
+    }
+
     .answer-card {
-      background: var(--surface-raised);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--r-xs);
-      padding: 20px 24px;
-      font-size: 14px;
-      line-height: 1.7;
-      color: var(--text-tertiary);
+      position: relative;
+      background: var(--fog);
+      border: 1px solid var(--sand);
+      border-radius: var(--r-card);
+      padding: 26px 30px 26px 34px;
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--plum);
       white-space: pre-wrap;
-    }
-
-    /* ── Image grids ── */
-    .img-section { margin-bottom: 48px; }
-
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-
-    .img-card {
-      background: var(--surface-raised);
-      border-radius: var(--r-xs);
       overflow: hidden;
-      transition: transform .2s, box-shadow .2s;
-      cursor: default;
+    }
+    .answer-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, var(--red) 0%, var(--grad-b) 50%, var(--grad-c) 100%);
     }
 
-    .img-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 28px rgba(0,0,0,.7);
+    /* ── Referenced pins ── */
+    .refs-section { margin-bottom: 56px; }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
     }
 
-    .img-card img {
+    /* ── Pin card ── */
+    .pin {
+      background: var(--white);
+      border-radius: var(--r-card);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.35s var(--ease-out-expo),
+                  box-shadow 0.35s var(--ease-out-expo);
+      break-inside: avoid;
+      will-change: transform;
+    }
+
+    .pin:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 14px 30px rgba(33, 25, 34, 0.16);
+    }
+
+    .pin img {
       width: 100%;
-      aspect-ratio: 16/9;
-      object-fit: cover;
+      height: auto;
       display: block;
-      background: #1a1a1a;
+      background: var(--fog);
+      transition: transform 0.6s var(--ease-out-expo);
+    }
+    .pin:hover img { transform: scale(1.04); }
+
+    .pin-ref img {
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
     }
 
-    .img-caption {
-      padding: 10px 12px 4px;
-      font-size: 12px;
-      color: var(--text-secondary);
+    .pin-body { padding: 10px 14px 14px; }
+
+    .pin-caption {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--plum);
       line-height: 1.4;
+      margin-bottom: 6px;
     }
 
-    .img-score {
-      padding: 2px 12px 10px;
-      font-size: 11px;
-      color: var(--surface-muted);
+    .pin-score { font-size: 12px; }
+    .pin-score span {
+      display: inline-block;
+      background: var(--badge-bg);
+      border: 1px solid var(--sand);
+      border-radius: 50px;
+      padding: 2px 10px;
+      color: var(--olive);
+      font-weight: 500;
     }
 
     /* ── Divider ── */
-    hr { border: none; border-top: 1px solid #1e1e1e; margin: 8px 0 48px; }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--sand);
+      margin: 0 0 40px;
+    }
 
-    /* ── Utilities ── */
+    /* ── Masonry grid ── */
+    .masonry { columns: 5 200px; column-gap: 16px; }
+    .masonry .pin { margin-bottom: 16px; }
+    .masonry .pin-body { padding: 8px 6px 12px; }
+    .masonry .pin-caption { font-size: 12px; font-weight: 500; }
+
+    /* ─────────────────────────────────────────────
+       SCROLL-REVEAL ANIMATIONS
+       Modern: CSS scroll-driven (animation-timeline: view())
+       Fallback: IntersectionObserver toggles .in-view
+       ───────────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px) scale(0.96);
+      transition: opacity 0.7s var(--ease-out-expo),
+                  transform 0.7s var(--ease-out-expo);
+    }
+    .reveal.in-view {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    @supports (animation-timeline: view()) {
+      @media (prefers-reduced-motion: no-preference) {
+        .reveal {
+          /* Initial state retained in case timeline is unavailable for the element */
+          animation: card-rise linear both;
+          animation-timeline: view();
+          animation-range: entry 0% cover 22%;
+        }
+      }
+    }
+
+    @keyframes card-rise {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.94);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Section title reveal on first paint */
+    .title-reveal {
+      opacity: 0;
+      transform: translateY(14px);
+      animation: title-up 0.8s var(--ease-out-expo) 0.15s forwards;
+    }
+    .title-reveal-2 { animation-delay: 0.25s; }
+
+    @keyframes title-up {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+/* ── Utility ── */
     .hidden { display: none !important; }
 
+    /* ── Reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001s !important;
+      }
+    }
+
     /* ── Responsive ── */
-    @media (max-width: 900px) {
-      main { padding: 32px 20px 60px; }
-      .grid-4 { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 1312px) { .masonry { columns: 4 200px; } }
+    @media (max-width: 1024px) { .masonry { columns: 4 160px; } }
+
+    @media (max-width: 890px) {
+      main { padding: 24px 16px 60px; }
+      .masonry { columns: 3 160px; }
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
     }
 
-    @media (max-width: 640px) {
-      header { padding: 16px 20px; }
-      .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    @media (max-width: 400px) {
-      .grid-3, .grid-4 { grid-template-columns: 1fr; }
-      .search-wrap { flex-direction: column; }
+    @media (max-width: 576px) {
+      header { padding: 10px 16px; flex-wrap: wrap; gap: 10px; }
+      .logo-text { display: none; }
+      .search-wrap { max-width: 100%; }
+      .search-btn { padding: 0 16px; }
+      .upload-btn span { display: none; }
+      .masonry { columns: 2 140px; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .section-title { font-size: 22px; letter-spacing: -0.5px; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>Image <em>Search</em> + Reasoning</h1>
-</header>
-
-<main>
-
-  <!-- Search -->
-  <div class="search-wrap">
-    <input
-      id="queryInput"
-      class="search-input"
-      type="text"
-      placeholder="e.g. What was the increase in the population of India?"
-      autofocus
-    />
-    <button id="searchBtn" class="search-btn" onclick="doSearch()">Search</button>
+<!-- ── Splash loader (hides on first load + before search) ── -->
+<div id="splash" aria-hidden="true">
+  <div class="splash-ring">
+    <div class="splash-mark">P</div>
   </div>
-
-  <!-- Loading -->
-  <div id="loadingEl" class="spinner hidden">
-    <div class="ring"></div>
-    <span>Thinking…</span>
+  <div class="splash-text" aria-label="PinSearch">
+    <span>P</span><span>i</span><span>n</span><span>S</span><span>e</span><span>a</span><span>r</span><span>c</span><span>h</span>
   </div>
+  <div class="splash-sub">Loading visual intelligence</div>
+</div>
 
-  <!-- Results -->
-  <div id="resultsSection" class="hidden">
-    <div class="img-section">
-      <h2 class="section-title">Agent Answer</h2>
-      <div id="answerCard" class="answer-card"></div>
+<!-- ── Drag-and-drop overlay (window-wide) ── -->
+<div id="dropzone" class="dropzone" aria-hidden="true">
+  <div class="dropzone-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  </div>
+  <div class="dropzone-title">Drop your image to search</div>
+  <div class="dropzone-sub">PNG, JPG, GIF — up to 10 MB</div>
+</div>
+
+<div class="page" id="page">
+
+  <!-- ── Header ── -->
+  <header>
+    <a class="logo" href="/">
+      <div class="logo-mark">P</div>
+      <span class="logo-text">PinSearch</span>
+    </a>
+    <div class="search-wrap">
+      <div class="search-shell" id="searchShell">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          id="queryInput"
+          class="search-input"
+          type="text"
+          placeholder="Search images, charts, data…"
+          autofocus
+        />
+        <button class="search-clear" id="searchClear" type="button" aria-label="Clear">✕</button>
+      </div>
+      <div class="topk-shell" title="How many results to show">
+        <label for="topKInput" class="topk-label">Top</label>
+        <input id="topKInput" class="topk-input" type="number" min="1" max="50" value="5" />
+      </div>
+      <button id="searchBtn" class="search-btn" onclick="doSearch()">Search</button>
+      <button class="upload-btn" title="Search by image" onclick="document.getElementById('imageFileInput').click()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>Upload</span>
+      </button>
+      <input id="imageFileInput" type="file" accept="image/*" class="hidden" onchange="onImageSelected(event)" />
+    </div>
+  </header>
+
+  <!-- ── Main ── -->
+  <main>
+
+    <!-- Upload preview -->
+    <div id="uploadPreview" class="upload-preview hidden">
+      <img id="uploadThumb" src="" alt="Uploaded image" />
+      <div class="upload-preview-text">
+        <strong id="uploadFileName"></strong>
+        Searching for visually similar images…
+      </div>
+      <button class="upload-clear" onclick="clearUpload()">✕ Clear</button>
     </div>
 
-    <div id="imagesUsedSection" class="img-section hidden">
-      <h2 class="section-title">Images Used</h2>
-      <div id="imagesUsedGrid" class="grid-3"></div>
+    <!-- Thinking spinner -->
+    <div id="loadingEl" class="spinner-wrap hidden">
+      <div class="ring-glow"></div>
+      <span class="spinner-text">Finding your pins<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>
     </div>
-  </div>
 
-  <hr />
+    <!-- Results block -->
+    <div id="resultsSection" class="hidden">
 
-  <!-- Browse all -->
-  <div class="img-section">
-    <h2 class="section-title">Browse All Images</h2>
-    <div id="allImagesGrid" class="grid-4"></div>
-  </div>
+      <div class="answer-section">
+        <h2 class="section-title">Answer</h2>
+        <div id="answerCard" class="answer-card reveal"></div>
+      </div>
 
-</main>
+      <div id="refsSection" class="refs-section hidden">
+        <h2 class="section-title">Referenced Pins</h2>
+        <p class="section-sub">Images the agent used to answer your question</p>
+        <div id="refsGrid" class="grid-3"></div>
+      </div>
+
+      <hr class="divider" />
+    </div>
+
+    <!-- Browse all — masonry -->
+    <div>
+      <h2 class="section-title title-reveal">Explore</h2>
+      <p class="section-sub title-reveal title-reveal-2">All available images</p>
+      <div id="masonryGrid" class="masonry"></div>
+    </div>
+
+  </main>
+
+</div>
 
 <script>
-  function imgCard(url, caption, score) {
+  /* ─── Helpers ─── */
+  function escHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function pinCard(url, caption, score, isRef) {
+    const scoreHtml = score != null
+      ? `<div class="pin-score"><span>Score ${Number(score).toFixed(3)}</span></div>`
+      : '';
     return `
-      <div class="img-card">
-        <img src="${url}" alt="${escHtml(caption)}" loading="lazy" />
-        <div class="img-caption">${escHtml(caption)}</div>
-        ${score != null ? `<div class="img-score">Score: ${Number(score).toFixed(3)}</div>` : ''}
+      <div class="pin reveal${isRef ? ' pin-ref' : ''}">
+        <img src="${escHtml(url)}" alt="${escHtml(caption)}" loading="lazy" />
+        <div class="pin-body">
+          <div class="pin-caption">${escHtml(caption)}</div>
+          ${scoreHtml}
+        </div>
       </div>`;
   }
 
-  function escHtml(s) {
-    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  /* ─── Scroll reveal (IntersectionObserver fallback) ─── */
+  const supportsScrollTimeline = CSS.supports && CSS.supports('animation-timeline: view()');
+  let revealObserver = null;
+  if (!supportsScrollTimeline && 'IntersectionObserver' in window) {
+    revealObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          revealObserver.unobserve(entry.target);
+        }
+      }
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+  }
+
+  function observeReveals(root = document) {
+    if (!revealObserver) return;
+    root.querySelectorAll('.reveal:not(.in-view)').forEach(el => revealObserver.observe(el));
+  }
+
+  /* ─── Search bar interactions ─── */
+  const queryInput  = document.getElementById('queryInput');
+  const searchShell = document.getElementById('searchShell');
+  const searchClear = document.getElementById('searchClear');
+  const topKInput   = document.getElementById('topKInput');
+
+  function getTopK() {
+    const n = parseInt(topKInput.value, 10);
+    if (!Number.isFinite(n) || n < 1) return 1;
+    if (n > 50) return 50;
+    return n;
+  }
+  topKInput.addEventListener('change', () => { topKInput.value = getTopK(); });
+
+  queryInput.addEventListener('input', () => {
+    searchShell.classList.toggle('has-text', !!queryInput.value);
+  });
+  searchClear.addEventListener('click', () => {
+    queryInput.value = '';
+    searchShell.classList.remove('has-text');
+    queryInput.focus();
+  });
+
+  /* ─── Drag-and-drop (window-wide overlay) ─── */
+  const dropzone = document.getElementById('dropzone');
+  let dragCounter = 0;
+
+  function isFileDrag(e) {
+    return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+  }
+
+  window.addEventListener('dragenter', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragCounter++;
+    dropzone.classList.add('active');
+  });
+
+  window.addEventListener('dragover', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    if (!isFileDrag(e)) return;
+    dragCounter = Math.max(0, dragCounter - 1);
+    if (dragCounter === 0) dropzone.classList.remove('active');
+  });
+
+  window.addEventListener('drop', (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragCounter = 0;
+    dropzone.classList.remove('active');
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) handleImageFile(file);
+  });
+
+  /* ─── Image upload flow ─── */
+  let selectedImageFile = null;
+
+  function onImageSelected(e) {
+    const file = e.target.files[0];
+    if (file) handleImageFile(file);
+  }
+
+  function handleImageFile(file) {
+    selectedImageFile = file;
+
+    const reader = new FileReader();
+    reader.onload = ev => {
+      document.getElementById('uploadThumb').src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    document.getElementById('uploadFileName').textContent = file.name;
+    document.getElementById('uploadPreview').classList.remove('hidden');
+    queryInput.value = '';
+    searchShell.classList.remove('has-text');
+
+    doImageSearch(file);
+  }
+
+  function clearUpload() {
+    selectedImageFile = null;
+    document.getElementById('imageFileInput').value = '';
+    document.getElementById('uploadPreview').classList.add('hidden');
+    document.getElementById('resultsSection').classList.add('hidden');
+  }
+
+  async function doImageSearch(file) {
+    const btn     = document.getElementById('searchBtn');
+    const loading = document.getElementById('loadingEl');
+    const results = document.getElementById('resultsSection');
+
+    btn.disabled = true;
+    loading.classList.remove('hidden');
+    results.classList.add('hidden');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const topK = getTopK();
+      const res = await fetch(`/api/search-by-image?top_k=${topK}`, { method: 'POST', body: formData });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Server error ${res.status}`);
+      }
+      const data = await res.json();
+
+      document.getElementById('answerCard').textContent =
+        `Found ${data.images?.length ?? 0} visually similar image(s) for your upload.`;
+
+      const refsSection = document.getElementById('refsSection');
+      const refsGrid    = document.getElementById('refsGrid');
+      document.querySelector('#refsSection .section-sub').textContent =
+        'Images visually similar to your uploaded photo';
+
+      if (data.images?.length) {
+        refsGrid.innerHTML = data.images
+          .map(i => pinCard(i.url, i.caption ?? '', i.score, true))
+          .join('');
+        refsSection.classList.remove('hidden');
+      } else {
+        refsSection.classList.add('hidden');
+      }
+
+      results.classList.remove('hidden');
+      observeReveals(results);
+      const headerH = document.querySelector('header').offsetHeight;
+      window.scrollTo({ top: results.getBoundingClientRect().top + window.scrollY - headerH - 16, behavior: 'smooth' });
+
+    } catch (err) {
+      document.getElementById('answerCard').textContent = 'Error: ' + err.message;
+      document.getElementById('refsSection').classList.add('hidden');
+      results.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      loading.classList.add('hidden');
+    }
   }
 
   async function loadAllImages() {
+    const grid = document.getElementById('masonryGrid');
     try {
       const res  = await fetch('/api/images');
       const data = await res.json();
-      document.getElementById('allImagesGrid').innerHTML =
-        data.images.map(i => imgCard(i.url, i.name, null)).join('');
-    } catch (e) {
-      document.getElementById('allImagesGrid').innerHTML =
-        `<p style="color:var(--text-secondary)">Could not load images.</p>`;
+      grid.innerHTML = data.images.map(i => pinCard(i.url, i.name, null, false)).join('');
+      observeReveals(grid);
+    } catch {
+      grid.innerHTML =
+        `<p style="color:var(--olive);padding:40px 0">Could not load images.</p>`;
     }
   }
 
   async function doSearch() {
-    const input = document.getElementById('queryInput');
-    const query = input.value.trim();
+    const query = queryInput.value.trim();
     if (!query) return;
 
-    const btn      = document.getElementById('searchBtn');
-    const loading  = document.getElementById('loadingEl');
-    const results  = document.getElementById('resultsSection');
+    const btn     = document.getElementById('searchBtn');
+    const loading = document.getElementById('loadingEl');
+    const results = document.getElementById('resultsSection');
 
     btn.disabled = true;
     loading.classList.remove('hidden');
@@ -295,32 +1183,40 @@
       const res  = await fetch('/api/search', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ query }),
+        body:    JSON.stringify({ query, top_k: getTopK() }),
       });
 
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Server error ${res.status}`);
+      }
       const data = await res.json();
 
       document.getElementById('answerCard').textContent = data.answer ?? '';
 
-      const usedSection = document.getElementById('imagesUsedSection');
-      const usedGrid    = document.getElementById('imagesUsedGrid');
+      const refsSection = document.getElementById('refsSection');
+      const refsGrid    = document.getElementById('refsGrid');
+
+      document.querySelector('#refsSection .section-sub').textContent =
+        'Images the agent used to answer your question';
 
       if (data.images?.length) {
-        usedGrid.innerHTML = data.images
-          .map(i => imgCard(i.url, i.caption ?? '', i.score))
+        refsGrid.innerHTML = data.images
+          .map(i => pinCard(i.url, i.caption ?? '', i.score, true))
           .join('');
-        usedSection.classList.remove('hidden');
+        refsSection.classList.remove('hidden');
       } else {
-        usedSection.classList.add('hidden');
+        refsSection.classList.add('hidden');
       }
 
       results.classList.remove('hidden');
-      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      observeReveals(results);
+      const headerH = document.querySelector('header').offsetHeight;
+      window.scrollTo({ top: results.getBoundingClientRect().top + window.scrollY - headerH - 16, behavior: 'smooth' });
 
     } catch (err) {
       document.getElementById('answerCard').textContent = 'Error: ' + err.message;
-      document.getElementById('imagesUsedSection').classList.add('hidden');
+      document.getElementById('refsSection').classList.add('hidden');
       results.classList.remove('hidden');
     } finally {
       btn.disabled = false;
@@ -328,11 +1224,32 @@
     }
   }
 
-  document.getElementById('queryInput').addEventListener('keydown', e => {
+  queryInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') doSearch();
   });
 
+  /* ─── Splash loader: fade out after first paint + images ready ─── */
+  function hideSplash() {
+    const splash = document.getElementById('splash');
+    const page   = document.getElementById('page');
+    page.classList.add('ready');
+    splash.classList.add('hide');
+    setTimeout(() => splash.remove(), 700);
+  }
+
+  // Kick off image load while splash is showing.
   loadAllImages();
+
+  // Min splash time + window load to feel intentional, not flashy.
+  const SPLASH_MIN_MS = 900;
+  const splashStart = performance.now();
+  window.addEventListener('load', () => {
+    const elapsed = performance.now() - splashStart;
+    const wait    = Math.max(0, SPLASH_MIN_MS - elapsed);
+    setTimeout(hideSplash, wait);
+  });
+  // Safety: never let splash linger past 4s.
+  setTimeout(hideSplash, 4000);
 </script>
 
 </body>

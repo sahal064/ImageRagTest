@@ -27,12 +27,14 @@
 #     return [metadata[i] for i in I[0]]
 # search.py
 
+import io
 import os
 import faiss
 import pickle
 import torch
 import open_clip
 import numpy as np
+from PIL import Image
 from typing import List, Dict, Set
 from dotenv import load_dotenv
 
@@ -50,7 +52,7 @@ with open(DB_METADATA_PATH, "rb") as f:
 
 # -------------------- Load CLIP --------------------
 
-model, preprocess, _ = open_clip.create_model_and_transforms(
+model, _, preprocess = open_clip.create_model_and_transforms(
     model_name="ViT-B-32",
     pretrained="laion2b_s34b_b79k"
 )
@@ -145,6 +147,34 @@ def search_images(
         # persist updates
         with open(DB_METADATA_PATH, "wb") as f:
             pickle.dump(metadata, f)
+
+    return results
+
+
+def search_by_image(image_bytes: bytes, k: int = 5) -> List[Dict]:
+    """Find visually similar images by encoding an uploaded image with CLIP."""
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    image_tensor = preprocess(image).unsqueeze(0)
+
+    with torch.no_grad():
+        image_emb = model.encode_image(image_tensor)
+        image_emb = image_emb / image_emb.norm(dim=-1, keepdim=True)
+
+    scores, indices = index.search(image_emb.cpu().numpy(), k)
+
+    results = []
+    for idx, score in zip(indices[0], scores[0]):
+        record = metadata[idx]
+        results.append({
+            "id": record["id"],
+            "path": record["path"],
+            "caption": record.get("caption"),
+            "tags": record.get("tags", []),
+            "score": float(score),
+            "source": record.get("source"),
+            "data": record.get("data") if record.get("data") else None,
+            "inference": record.get("inference") if record.get("inference") else None,
+        })
 
     return results
 
