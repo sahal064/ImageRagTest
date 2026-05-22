@@ -1,0 +1,7 @@
+.claude
+.agent
+/img
+*.md
+.env
+__pycache__/
+*.pyc

@@ -1,0 +1,13 @@
+faiss-cpu
+fastapi
+langchain
+langchain-core
+langchain-groq
+numpy
+open-clip-torch
+pillow
+python-dotenv
+python-multipart
+streamlit
+torch
+uvicorn
