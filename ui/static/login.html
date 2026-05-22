@@ -311,7 +311,8 @@
       const data = await res.json();
 
       if (res.ok) {
-        window.location.reload();
+        localStorage.setItem('access_token', data.access_token);
+        window.location.href = '/';
       } else {
         showError(data.detail || 'Invalid credentials');
       }

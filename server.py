@@ -4,23 +4,25 @@ import os
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, PROJECT_ROOT)
 
-import asyncio
-from fastapi import FastAPI, File, HTTPException, UploadFile, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-import secrets
+import asyncio  # noqa: E402
+from fastapi import FastAPI, File, HTTPException, UploadFile, Depends  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+import secrets  # noqa: E402
 
-from agent.runner import run_agent
-from retrieval.search import search_by_image
+from agent.runner import run_agent  # noqa: E402
+from retrieval.search import search_by_image  # noqa: E402
 
 app = FastAPI(title="Image Search + Reasoning API")
 
-# Authentication credentials (static for now)
 VALID_USERNAME = "sahal"
 VALID_PASSWORD = "1234"
-SESSION_TOKEN = secrets.token_hex(32)
+active_tokens: dict[str, str] = {}  # token -> username
+
+bearer_scheme = HTTPBearer()
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,10 +38,13 @@ app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-def is_authenticated(request: Request) -> bool:
-    """Check if user has valid session token"""
-    token = request.cookies.get("session_token")
-    return token == SESSION_TOKEN
+def require_auth(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> str:
+    token = credentials.credentials
+    if token not in active_tokens:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return token
 
 
 class LoginRequest(BaseModel):
@@ -48,26 +53,18 @@ class LoginRequest(BaseModel):
 
 
 @app.post("/api/login")
-async def login(creds: LoginRequest, response: Response):
-    """Login endpoint"""
+async def login(creds: LoginRequest):
     if creds.username == VALID_USERNAME and creds.password == VALID_PASSWORD:
-        # Set session cookie (httponly=True for security, max_age=7 days)
-        response.set_cookie(
-            "session_token",
-            SESSION_TOKEN,
-            max_age=7 * 24 * 60 * 60,
-            httponly=True,
-            samesite="lax"
-        )
-        return {"status": "success"}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        token = secrets.token_hex(32)
+        active_tokens[token] = creds.username
+        return {"access_token": token, "token_type": "bearer"}
+    raise HTTPException(status_code=401, detail="Invalid username or password")
 
 
-@app.get("/health")
-async def health():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "Image Search + Reasoning API"}
+@app.post("/api/logout")
+async def logout(token: str = Depends(require_auth)):
+    active_tokens.pop(token, None)
+    return {"status": "logged out"}
 
 
 class SearchRequest(BaseModel):
@@ -80,7 +77,7 @@ def _clamp_top_k(value: int) -> int:
 
 
 @app.post("/api/search")
-async def search(request: SearchRequest, http_request: Request):
+async def search(request: SearchRequest, _: str = Depends(require_auth)):
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
@@ -95,12 +92,19 @@ async def search(request: SearchRequest, http_request: Request):
 
 
 @app.post("/api/search-by-image")
-async def search_by_image_endpoint(request: Request, file: UploadFile = File(...), top_k: int = 5):
+async def search_by_image_endpoint(
+    file: UploadFile = File(...),
+    top_k: int = 5,
+    _: str = Depends(require_auth),
+):
     if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+        raise HTTPException(
+            status_code=400, detail="Uploaded file must be an image"
+        )
 
     image_bytes = await file.read()
-    results = await asyncio.to_thread(search_by_image, image_bytes, _clamp_top_k(top_k))
+    top_k_clamped = _clamp_top_k(top_k)
+    results = await asyncio.to_thread(search_by_image, image_bytes, top_k_clamped)
 
     for img in results:
         raw = img.get("path", "")
@@ -110,7 +114,7 @@ async def search_by_image_endpoint(request: Request, file: UploadFile = File(...
 
 
 @app.get("/api/images")
-async def list_images(request: Request):
+async def list_images(_: str = Depends(require_auth)):
     files = sorted(
         f for f in os.listdir(IMAGES_DIR)
         if f.lower().endswith((".png", ".jpg", ".jpeg"))
@@ -118,8 +122,11 @@ async def list_images(request: Request):
     return {"images": [{"name": f, "url": f"/images/{f}"} for f in files]}
 
 
+@app.get("/login")
+async def login_page():
+    return FileResponse(os.path.join(STATIC_DIR, "login.html"))
+
+
 @app.get("/")
-async def root(request: Request):
-    if not is_authenticated(request):
-        return FileResponse(os.path.join(STATIC_DIR, "login.html"))
+async def root():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
