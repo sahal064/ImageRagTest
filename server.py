@@ -35,6 +35,7 @@ IMAGES_DIR = os.path.join(PROJECT_ROOT, os.getenv("IMAGES_DIR", "images"))
 STATIC_DIR = os.path.join(PROJECT_ROOT, "ui", "static")
 
 app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
+# app.get('/health')(lambda: {'status': 'healthy'})
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -78,7 +79,7 @@ def _clamp_top_k(value: int) -> int:
 
 @app.post("/api/search")
 async def search(request: SearchRequest, _: str = Depends(require_auth)):
-    if not request.query.strip():
+    if not request.query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     top_k = _clamp_top_k(request.top_k)
