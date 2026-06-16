@@ -5,7 +5,7 @@ from langchain_core.messages import ToolMessage, HumanMessage
 
 agent = create_image_agent()
 
-def run_agent(query: str):
+def run_agent(query: str, top_k: int = 5):
     messages = [HumanMessage(content=query)]
     image_metadata = None
     final_answer = None
@@ -24,9 +24,11 @@ def run_agent(query: str):
             tool_args = call["args"]
 
             if tool_name == "image_search_tool":
-                image_metadata = image_search_tool.invoke(tool_args)
-                used_images.append(image_metadata)
-                tool_output = image_metadata
+                tool_args["top_k"] = top_k
+                results = image_search_tool.invoke(tool_args)
+                image_metadata = results[0] if results else {}
+                used_images.extend(results)
+                tool_output = results
 
             elif tool_name == "chart_reasoning_tool":
                 tool_args["image_metadata"] = image_metadata

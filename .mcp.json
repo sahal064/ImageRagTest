@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "testguru": {
+      "command": "c:\\Users\\Sahal\\Pudur\\gap-analyzer\\.venv2\\Scripts\\python.exe",
+      "args": ["c:\\Users\\Sahal\\Pudur\\gap-analyzer\\testguru-mcp\\scripts\\run_mcp.py"],
+      "env": {
+        "PYTHONPATH": "c:\\Users\\Sahal\\Pudur\\gap-analyzer\\testguru-mcp\\src"
+      }
+    }
+  }
+}
