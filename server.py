@@ -59,3 +59,7 @@ async def list_images():
 @app.get("/")
 async def root():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+if not request.query:
+        return
+
